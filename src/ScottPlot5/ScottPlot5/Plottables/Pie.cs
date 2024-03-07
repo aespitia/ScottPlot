@@ -9,6 +9,7 @@ public class Pie : IPlottable
     public double SliceLabelDistance { get; set; } = 1.2;
     public bool ShowSliceLabels { get; set; } = false;
     public double Padding { get; set; } = 0.2;
+    public double DonutSize { get; set; } = 0;
 
     public IAxes Axes { get; set; } = new Axes();
 
@@ -52,8 +53,13 @@ public class Pie : IPlottable
         using SKPath path = new();
         using SKPaint paint = new() { IsAntialias = true };
 
-        // TODO: first slice should be North, not East.
+        SKPath donutClipPath = null;
+        if (DonutSize > 0)
+        {
+            donutClipPath = GetDonutClipPath(rect, radius * (float)DonutSize);
+        }
 
+        // TODO: first slice should be North, not East.        
         float[] sliceOffsetDegrees = new float[Slices.Count];
         for (int i = 1; i < Slices.Count(); i++)
         {
@@ -86,6 +92,11 @@ public class Pie : IPlottable
                 path.AddOval(rect);
             }
 
+            if (donutClipPath != null)
+            {
+                rp.Canvas.ClipPath(donutClipPath, SKClipOperation.Difference);
+            }
+
             Slices[i].Fill.ApplyToPaint(paint, new PixelRect(origin, radius));
             paint.Shader = paint.Shader?.WithLocalMatrix(SKMatrix.CreateRotationDegrees(-rotation));
             rp.Canvas.DrawPath(path, paint);
@@ -106,5 +117,14 @@ public class Pie : IPlottable
                 Slices[i].LabelStyle.Render(rp.Canvas, px);
             }
         }
+    }
+
+    private SKPath GetDonutClipPath(SKRect rect, float donutRadius)
+    {
+
+        SKPath donutPath = new SKPath();
+        donutPath.AddCircle(rect.MidX, rect.MidY, donutRadius);
+
+        return donutPath;
     }
 }
